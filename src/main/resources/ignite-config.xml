@@ -1,0 +1,54 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+        http://www.springframework.org/schema/util
+        http://www.springframework.org/schema/util/spring-util-2.0.xsd">
+
+	<bean id="ignite.cfg"
+		class="org.apache.ignite.configuration.IgniteConfiguration">
+
+		<property name="cacheConfiguration">
+			<list>
+				<bean
+					class="org.apache.ignite.configuration.CacheConfiguration">
+					<property name="name" value="default" />
+					<property name="atomicityMode" value="ATOMIC" />
+					<property name="backups" value="0" />
+					<property name="cacheMode" value="LOCAL"/>
+					<property name="peerClassLoadingEnabled" value="false"/>
+					<property name="swapEnabled" value="false"/>
+					<property name="offHeapMaxMemory" value="0"/>
+					<property name="startSize" value="#{10 * 1024 * 1024}"/>
+					<property name="copyOnRead" value="false"/>
+					
+				</bean>
+			</list>
+		</property>
+
+    <property name="includeEventTypes">
+        <list>
+        </list>
+    </property>
+    
+		<property name="discoverySpi">
+			<bean
+				class="org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi">
+				<property name="ipFinder">
+					<bean
+						class="org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder">
+						<property name="addresses">
+							<list>
+								<!-- In distributed environment, replace with actual host IP address. -->
+								<value>127.0.0.1:47500</value>
+							</list>
+						</property>
+					</bean>
+				</property>
+			</bean>
+		</property>
+
+	</bean>
+</beans>
