@@ -39,13 +39,15 @@ import java.util.concurrent.TimeUnit;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
+import org.apache.ignite.binary.BinaryField;
 import org.apache.ignite.binary.BinaryObject;
+import org.apache.ignite.binary.BinaryType;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.configuration.CacheConfiguration;
+import org.h2.engine.SysProperties;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
@@ -56,30 +58,32 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
-@Warmup(iterations = 10, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 10, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 21, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 21 , timeUnit = TimeUnit.SECONDS)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @BenchmarkMode({ Mode.AverageTime })
 public class MHBenchmark {
 
-	public static final long SIZE = 100_000;
+	public static final long SIZE = 500_000;
 
 	@State(Scope.Benchmark)
 	public static class IgniteInstance {
 
 		volatile Ignite instance;
-		volatile IgniteCache<String, ValueObject> cache;
-		volatile IgniteCache<String, BinaryObject> cacheAsBinary;
+		volatile IgniteCache<Long, ValueObject> cache;
+		volatile IgniteCache<Long, BinaryObject> cacheAsBinary;
+		volatile Random r = new Random();
+		volatile BinaryField field;
+
 		@Setup
 		public void setup() {
 			instance = Ignition.start();
-			System.setProperty("IGNITE_BINARY_SORT_OBJECT_FIELDS", "true"); 
-			CacheConfiguration<String, ValueObject> conf = new CacheConfiguration<>("ignite-config.xml");
+			CacheConfiguration<Long, ValueObject> conf = new CacheConfiguration<>("ignite-config.xml");
 			conf.setCacheMode(CacheMode.LOCAL);
 			conf.setName("test");
 			conf.setCopyOnRead(false);
-			conf.setTypes(String.class, ValueObject.class);
-	
+			conf.setTypes(Long.class, ValueObject.class);
+
 			conf.setAtomicityMode(CacheAtomicityMode.ATOMIC);
 			conf.setStatisticsEnabled(false);
 			conf.setBackups(0);
@@ -87,12 +91,14 @@ public class MHBenchmark {
 			conf.setOnheapCacheEnabled(true);
 			conf.setStoreByValue(true);
 
-			
 			cache = instance.createCache(conf);
 			cacheAsBinary = cache.withNoRetries().withSkipStore().withKeepBinary();
-			for (int i = 0; i < SIZE; i++) {
-				cache.put("key_" + i, ValueObject.createNew(i));
+			for (long i = 0; i < SIZE; i++) {
+				cache.put(i, ValueObject.createNew(i));
 			}
+
+			BinaryType type = instance.binary().type(ValueObject.class);
+			field = type.field("field1");
 		}
 
 		@TearDown
@@ -105,7 +111,7 @@ public class MHBenchmark {
 	public static class ValueObject {
 		private static Random rn = new Random();
 
-		private String field1;
+		private Long field1;
 		private Integer field2;
 		private String field3;
 		private Integer field4;
@@ -136,11 +142,43 @@ public class MHBenchmark {
 		private String field29;
 		private Integer field30;
 		private String field31;
-		private Integer field32;	
+		private Integer field32;
+		private String field33;
+		private Integer field34;
+		private String field35;
+		private Integer field36;
+		private String field37;
+		private Integer field38;
+		private String field39;
+		private Integer field40;
+		private String field41;
+		private Integer field42;
+		private String field43;
+		private Integer field44;
+		private String field45;
+		private Integer field46;
+		private String field47;
+		private Integer field48;
+		private String field49;
+		private Integer field50;
+		private String field51;
+		private Integer field52;
+		private String field53;
+		private Integer field54;
+		private String field55;
+		private Integer field56;
+		private String field57;
+		private Integer field58;
+		private String field59;
+		private Integer field60;
+		private String field61;
+		private Integer field62;
+		private String field63;
+		private Integer field64;
 
-		public static ValueObject createNew(Integer i) {
+		public static ValueObject createNew(Long i) {
 			ValueObject o = new ValueObject();
-			o.field1 = "key_" + i;
+			o.field1 = i;
 			o.field2 = rn.nextInt();
 			o.field3 = UUID.randomUUID().toString();
 			o.field4 = rn.nextInt();
@@ -171,60 +209,55 @@ public class MHBenchmark {
 			o.field29 = UUID.randomUUID().toString();
 			o.field30 = rn.nextInt();
 			o.field31 = UUID.randomUUID().toString();
-			o.field32 = rn.nextInt();			
+			o.field32 = rn.nextInt();
+			o.field33 = "key_" + i;
+			o.field34 = rn.nextInt();
+			o.field35 = UUID.randomUUID().toString();
+			o.field36 = rn.nextInt();
+			o.field37 = UUID.randomUUID().toString();
+			o.field38 = rn.nextInt();
+			o.field39 = UUID.randomUUID().toString();
+			o.field40 = rn.nextInt();
+			o.field41 = UUID.randomUUID().toString();
+			o.field42 = rn.nextInt();
+			o.field43 = UUID.randomUUID().toString();
+			o.field44 = rn.nextInt();
+			o.field45 = UUID.randomUUID().toString();
+			o.field46 = rn.nextInt();
+			o.field47 = UUID.randomUUID().toString();
+			o.field48 = rn.nextInt();
+			o.field49 = UUID.randomUUID().toString();
+			o.field50 = rn.nextInt();
+			o.field51 = UUID.randomUUID().toString();
+			o.field52 = rn.nextInt();
+			o.field53 = UUID.randomUUID().toString();
+			o.field54 = rn.nextInt();
+			o.field55 = UUID.randomUUID().toString();
+			o.field56 = rn.nextInt();
+			o.field57 = UUID.randomUUID().toString();
+			o.field58 = rn.nextInt();
+			o.field59 = UUID.randomUUID().toString();
+			o.field60 = rn.nextInt();
+			o.field61 = UUID.randomUUID().toString();
+			o.field62 = rn.nextInt();
+			o.field63 = UUID.randomUUID().toString();
+			o.field64 = rn.nextInt();
 			return o;
 		}
 	}
 
-	@State(Scope.Benchmark)
-	public static class ConcurrentHaspMapInstance {
-
-		volatile ConcurrentHashMap<String, String> map;
-
-		@Setup
-		public void setup() {
-			map = new ConcurrentHashMap<>();
-
-			for (int i = 0; i < SIZE; i++) {
-				map.put("key_" + i, "value_" + i);
-			}
-		}
-	}
-
-	@State(Scope.Thread)
-	public static class Key {
-		final Random r = new Random();
-		String value;
-		@Setup(Level.Invocation)
-		public void setup() {
-			value = "key_" + Math.abs(r.nextLong()) % SIZE;
-		}
+	@Benchmark
+	public void igniteRead(IgniteInstance igniteInstance, Blackhole bh) throws Throwable {
+		Long key = Math.abs(igniteInstance.r.nextLong()) % SIZE;
+		ValueObject o = igniteInstance.cache.get(key);
+		bh.consume(o.field1);
 	}
 
 	@Benchmark
-	public void igniteRead(IgniteInstance igniteInstance, Key key, Blackhole bh) throws Throwable {
-		ValueObject o = igniteInstance.cache.get(key.value);
-		if (o == null) {
-			System.out.println(key.value);			
-			throw new IllegalArgumentException(key.value);
-		}
-		String field1 = o.field1;
-		if(!field1.equals(key.value)) {
-			throw new IllegalStateException(key.value);
-		};
-	}
-
-	@Benchmark
-	public void igniteReadKeepBinary(IgniteInstance igniteInstance, Key key, Blackhole bh) throws Throwable {
-		BinaryObject o =  igniteInstance.cacheAsBinary.get(key.value);
-		if (o == null) {
-			System.out.println(key.value);
-			throw new IllegalArgumentException(key.value);
-		}
-		String field1 = (String) o.field("field1");
-		if(!field1.equals(key.value)) {
-			throw new IllegalStateException(key.value);
-		};
+	public void igniteReadKeepBinary(IgniteInstance igniteInstance, Blackhole bh) throws Throwable {
+		Long key = Math.abs(igniteInstance.r.nextLong()) % SIZE;
+		BinaryObject o = igniteInstance.cacheAsBinary.get(key);
+		bh.consume((Long) igniteInstance.field.value(o));
 	}
 
 //	@Benchmark
@@ -232,12 +265,30 @@ public class MHBenchmark {
 //			throws Throwable {
 //		bh.consume(concurrentHaspMapInstance.map.get(key.value));
 //	}
+
 //	public static void main(String[] args) {
-//		IgniteInstance i = new IgniteInstance();
-//		i.setup();
-//		BinaryObject o = i.cacheAsBinary.get("key_1000");
-//		String t = o.field("field1");
-//		System.out.println(t);
+//		IgniteInstance instance = new IgniteInstance();
+//		instance.setup();
+//		long binaryTime = 0;
+//		long nativeTime = 0;
+//
+//		String key;
+//		
+//		for (int j = 0; j < 1000; j++) {
+//			key = "key_" + Math.abs(instance.r.nextLong()) % SIZE;
+//
+//			long start = System.nanoTime();
+//			BinaryObject bo = instance.cacheAsBinary.get(key);
+//			String field1 = (String) instance.field.value(bo);
+//			binaryTime +=  System.nanoTime() - start;
+//			
+//			start = System.nanoTime();
+//			ValueObject vo = instance.cache.get(key);
+//			String field2 = vo.field1;
+//			nativeTime += System.nanoTime() - start;
+//		}
+//		System.out.println("native : " + (nativeTime) + " binary : " + (binaryTime) + " rate : " + (double) binaryTime / (double) nativeTime);
+//
 //	}
 
 }
