@@ -31,9 +31,11 @@
 
 package org.test.ignite.performance;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.ignite.Ignite;
@@ -43,11 +45,12 @@ import org.apache.ignite.binary.BinaryField;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.binary.BinaryType;
 import org.apache.ignite.cache.CacheAtomicityMode;
+import org.apache.ignite.cache.CacheEntry;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.configuration.CacheConfiguration;
-import org.h2.engine.SysProperties;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
@@ -58,20 +61,22 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
-@Warmup(iterations = 21, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 21 , timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 5, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 21, timeUnit = TimeUnit.SECONDS)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @BenchmarkMode({ Mode.AverageTime })
 public class MHBenchmark {
 
 	public static final long SIZE = 500_000;
-
+	public static final long MULTIPLE_READ = 1000;
+	
 	@State(Scope.Benchmark)
 	public static class IgniteInstance {
 
 		volatile Ignite instance;
 		volatile IgniteCache<Long, ValueObject> cache;
 		volatile IgniteCache<Long, BinaryObject> cacheAsBinary;
+		volatile IgniteCache<Long, BinaryObject> cacheAsBinaryAndReadUncommitted;
 		volatile Random r = new Random();
 		volatile BinaryField field;
 
@@ -92,7 +97,9 @@ public class MHBenchmark {
 			conf.setStoreByValue(true);
 
 			cache = instance.createCache(conf);
-			cacheAsBinary = cache.withNoRetries().withSkipStore().withKeepBinary();
+			cacheAsBinary = cache.withKeepBinary();
+			cacheAsBinaryAndReadUncommitted = cache.withReadUncommitted();
+
 			for (long i = 0; i < SIZE; i++) {
 				cache.put(i, ValueObject.createNew(i));
 			}
@@ -250,7 +257,17 @@ public class MHBenchmark {
 	public void igniteRead(IgniteInstance igniteInstance, Blackhole bh) throws Throwable {
 		Long key = Math.abs(igniteInstance.r.nextLong()) % SIZE;
 		ValueObject o = igniteInstance.cache.get(key);
-		bh.consume(o.field1);
+		bh.consume(o.field1);		
+	}
+
+	
+	@Benchmark
+	public void igniteReadMultipleValues(IgniteInstance igniteInstance, Blackhole bh) throws Throwable {
+		for (int i = 0; i < MULTIPLE_READ; i++) {
+			Long key = Math.abs(igniteInstance.r.nextLong()) % SIZE;
+			ValueObject o = igniteInstance.cache.get(key);
+			bh.consume(o.field1);
+		}
 	}
 
 	@Benchmark
@@ -259,6 +276,33 @@ public class MHBenchmark {
 		BinaryObject o = igniteInstance.cacheAsBinary.get(key);
 		bh.consume((Long) igniteInstance.field.value(o));
 	}
+	
+	@Benchmark
+	public void igniteReadKeepBinaryMultipleValues(IgniteInstance igniteInstance, Blackhole bh) throws Throwable {
+		for (int i = 0; i < MULTIPLE_READ; i++) {
+			Long key = Math.abs(igniteInstance.r.nextLong()) % SIZE;
+			BinaryObject o = igniteInstance.cacheAsBinary.get(key);
+			bh.consume((Long) igniteInstance.field.value(o));	
+		}
+	}
+
+	@Benchmark
+	public void igniteReadKeepBinaryAndReadUncommitted(IgniteInstance igniteInstance, Blackhole bh) throws Throwable {
+		Long key = Math.abs(igniteInstance.r.nextLong()) % SIZE;
+		BinaryObject o = igniteInstance.cacheAsBinaryAndReadUncommitted.get(key);
+		bh.consume((Long) igniteInstance.field.value(o));
+	}
+	
+	@Benchmark
+	public void igniteReadKeepBinaryAndReadUncommittedMultipleValues(IgniteInstance igniteInstance, Blackhole bh) throws Throwable {
+		for (int i = 0; i < MULTIPLE_READ; i++) {
+			Long key = Math.abs(igniteInstance.r.nextLong()) % SIZE;
+			BinaryObject o = igniteInstance.cacheAsBinaryAndReadUncommitted.get(key);
+			bh.consume((Long) igniteInstance.field.value(o));
+		}
+	}
+	
+
 
 //	@Benchmark
 //	public void concurrentHashMapRead(ConcurrentHaspMapInstance concurrentHaspMapInstance, Key key, Blackhole bh)
@@ -266,21 +310,26 @@ public class MHBenchmark {
 //		bh.consume(concurrentHaspMapInstance.map.get(key.value));
 //	}
 
-//	public static void main(String[] args) {
-//		IgniteInstance instance = new IgniteInstance();
-//		instance.setup();
-//		long binaryTime = 0;
-//		long nativeTime = 0;
-//
-//		String key;
+	public static void main(String[] args) {
+		IgniteInstance instance = new IgniteInstance();
+		instance.setup();
+		long binaryTime = 0;
+		long nativeTime = 0;
+
+		Long key = Math.abs(instance.r.nextLong()) % SIZE;
+		BinaryObject bo = instance.cacheAsBinary.get(key);
+		bo = instance.cacheAsBinaryAndReadUncommitted.get(key);
+		Long field1 = (Long) instance.field.value(bo);
+		System.out.println(field1);
+
+//		key =  Math.abs(instance.r.nextLong()) % SIZE;
+//		IgniteCache<Long, ValueObject> cacheRU = instance.cache.withReadUncommitted();
+//		IgniteCache<Long, BinaryObject> cacheBI = cacheRU.withKeepBinary();
+//		bo = cacheBI.get(key);
+//		field1 = (Long) instance.field.value(bo);
+//		System.out.println(field1);
 //		
 //		for (int j = 0; j < 1000; j++) {
-//			key = "key_" + Math.abs(instance.r.nextLong()) % SIZE;
-//
-//			long start = System.nanoTime();
-//			BinaryObject bo = instance.cacheAsBinary.get(key);
-//			String field1 = (String) instance.field.value(bo);
-//			binaryTime +=  System.nanoTime() - start;
 //			
 //			start = System.nanoTime();
 //			ValueObject vo = instance.cache.get(key);
@@ -288,7 +337,7 @@ public class MHBenchmark {
 //			nativeTime += System.nanoTime() - start;
 //		}
 //		System.out.println("native : " + (nativeTime) + " binary : " + (binaryTime) + " rate : " + (double) binaryTime / (double) nativeTime);
-//
-//	}
+
+	}
 
 }

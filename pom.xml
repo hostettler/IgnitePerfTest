@@ -7,7 +7,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 
 	<properties>
-		<ignite.version>2.6.0</ignite.version>
+		<ignite.version>2.6.0-RO-SNAPSHOT</ignite.version>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<log4j.version>2.11.0</log4j.version>
